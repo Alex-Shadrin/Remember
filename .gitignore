@@ -1,0 +1,10 @@
+bin/
+obj/
+dist/
+.tools/
+.test-data/
+*.user
+*.suo
+*.pdb
+*.log
+.vs/
