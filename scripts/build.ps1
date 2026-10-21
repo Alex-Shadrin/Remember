@@ -29,12 +29,14 @@ if ($Package) {
     $releaseDir = Join-Path $projectRoot 'dist/Remember'
     New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
     foreach ($name in @('Remember.exe', 'Remember.exe.config')) { Copy-Item -LiteralPath (Join-Path $projectRoot "bin/Release/$name") -Destination $releaseDir -Force }
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'assets/Remember.ico') -Destination $releaseDir -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1') -Destination $releaseDir -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $releaseDir -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Install.cmd') -Destination $releaseDir -Force
     $imageDir = Join-Path $releaseDir 'docs/images'
     New-Item -ItemType Directory -Path $imageDir -Force | Out-Null
     Copy-Item -Path (Join-Path $projectRoot 'docs/images/*.png') -Destination $imageDir -Force
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/icon-design.md') -Destination (Join-Path $releaseDir 'docs') -Force
     foreach ($name in @('README.md', 'LICENSE')) { Copy-Item -LiteralPath (Join-Path $projectRoot $name) -Destination $releaseDir -Force }
     Compress-Archive -LiteralPath $releaseDir -DestinationPath (Join-Path $projectRoot 'dist/Remember-1.0.0-windows.zip') -Force
     $hash = (Get-FileHash -LiteralPath (Join-Path $projectRoot 'dist/Remember-1.0.0-windows.zip') -Algorithm SHA256).Hash.ToLowerInvariant()

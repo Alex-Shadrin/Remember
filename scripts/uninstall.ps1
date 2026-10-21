@@ -8,7 +8,7 @@ foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::Ge
     if (Test-Path -LiteralPath $shortcutPath) { Remove-Item -LiteralPath $shortcutPath }
 }
 # Deliberately remove only known app files; user reminders and backups stay in AppData.
-foreach ($name in @('Remember.exe', 'Remember.exe.config', 'uninstall.ps1', 'README.md', 'LICENSE')) {
+foreach ($name in @('Remember.exe', 'Remember.exe.config', 'Remember.ico', 'uninstall.ps1', 'README.md', 'LICENSE')) {
     $file = Join-Path $installDir $name
     if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
 }
