@@ -26,6 +26,7 @@
     <Compile Include="src\Core.cs" /><Compile Include="src\Storage.cs" />
     <Compile Include="src\Program.cs" /><Compile Include="src\Ui.cs" />
     <Compile Include="src\MainWindow.cs" /><Compile Include="src\Dialogs.cs" />
+    <Compile Include="src\Preferences.cs" />
     <Compile Include="src\AssemblyInfo.cs" />
     <EmbeddedResource Include="src\Theme.xaml"><LogicalName>Remember.Theme.xaml</LogicalName></EmbeddedResource>
     <None Include="App.config" />

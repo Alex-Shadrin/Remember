@@ -74,7 +74,7 @@ namespace Remember
                 catch (Exception ex)
                 {
                     if (host != null) host.Dispose();
-                    Forms.MessageBox.Show(ex.Message, "Remember — не удалось запустить", Forms.MessageBoxButtons.OK, Forms.MessageBoxIcon.Error);
+                    Forms.MessageBox.Show(L.T(ex.Message), L.T("Remember — не удалось запустить"), Forms.MessageBoxButtons.OK, Forms.MessageBoxIcon.Error);
                     return 1;
                 }
             }
@@ -89,6 +89,7 @@ namespace Remember
         public MainWindow Main { get; private set; }
         public bool IsTest { get; private set; }
         public bool IsExiting { get; private set; }
+        public long Revision { get; private set; }
         public readonly Dictionary<string, Occurrence> ActiveNotifications = new Dictionary<string, Occurrence>();
         public event Action Changed;
         readonly Application application;
@@ -103,21 +104,46 @@ namespace Remember
         public AppHost(Application app, Storage storage, bool test, bool background)
         {
             application = app; Storage = storage; IsTest = test; this.background = background; Data = storage.Load();
+            L.Configure(Data.Language); Appearance.Apply(Data.Theme);
             startupGrace = TimeSpan.FromSeconds(background ? Data.StartupDelaySeconds : 3);
             timer = new DispatcherTimer(DispatcherPriority.Background); timer.Tick += (s, e) => Evaluate();
             SystemEvents.PowerModeChanged += OnPowerModeChanged; SystemEvents.TimeChanged += OnTimeChanged;
         }
         public void Start()
         {
-            tray = new Forms.NotifyIcon { Text = "Remember · всё важное — вовремя", Icon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location), Visible = true };
-            var menu = new Forms.ContextMenuStrip();
-            menu.Items.Add("Открыть календарь", null, (s, e) => ShowMain());
-            menu.Items.Add("Добавить напоминание", null, (s, e) => { ShowMain(); Edit(null, DateTime.Today); });
-            menu.Items.Add("Настройки", null, (s, e) => { ShowMain(); new SettingsDialog(Main, this).ShowDialog(); });
-            menu.Items.Add(new Forms.ToolStripSeparator()); menu.Items.Add("Выйти из Remember", null, (s, e) => Exit());
-            tray.ContextMenuStrip = menu; tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) ShowMain(); };
+            tray = new Forms.NotifyIcon { Text = "Remember", Icon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location), Visible = true };
+            RebuildTray();
+            tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) ShowMain(); };
             if (!background) ShowMain(); Arm();
-            if (!string.IsNullOrEmpty(Storage.Warning)) application.Dispatcher.BeginInvoke(new Action(() => { ShowMain(); new MessageDialog(Main, "Восстановление данных", Storage.Warning).ShowDialog(); }));
+            if (!string.IsNullOrEmpty(Storage.Warning)) application.Dispatcher.BeginInvoke(new Action(() => { ShowMain(); new MessageDialog(Main, "Восстановление данных", L.T(Storage.Warning)).ShowDialog(); }));
+        }
+        void RebuildTray()
+        {
+            var oldMenu = tray.ContextMenuStrip;
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add(L.T("Открыть календарь"), null, (s, e) => ShowMain());
+            menu.Items.Add(L.T("Добавить напоминание"), null, (s, e) => { ShowMain(); Edit(null, DateTime.Today); });
+            menu.Items.Add(L.T("Настройки"), null, (s, e) => { ShowMain(); OpenSettings(); });
+            menu.Items.Add(new Forms.ToolStripSeparator()); menu.Items.Add(L.T("Выйти из Remember"), null, (s, e) => Exit());
+            tray.ContextMenuStrip = menu; if (oldMenu != null) oldMenu.Dispose();
+        }
+        public void OpenSettings()
+        {
+            var dialog = new SettingsDialog(Main, this);
+            if (dialog.ShowDialog() == true) ApplyPreferences();
+        }
+        public void ApplyPreferences()
+        {
+            string language = Data.Language == "en" ? "en" : "ru", theme = Data.Theme == "sage" || Data.Theme == "light" ? Data.Theme : "graphite";
+            if (language == L.Language && theme == Appearance.Theme) return;
+            L.Configure(Data.Language); Appearance.Apply(Data.Theme); if (tray != null) RebuildTray();
+            if (Main != null)
+            {
+                var view = Main.CaptureView(); Main.Close();
+                Main = new MainWindow(this, view); application.MainWindow = Main; Main.Show(); Main.Activate();
+            }
+            foreach (var popup in application.Windows.OfType<NotificationWindow>().ToArray()) popup.CloseForAppearanceChange();
+            if (ActiveNotifications.Count > 0) { notification = new NotificationWindow(this); notification.Show(); }
         }
         public void ShowMain()
         {
@@ -131,10 +157,11 @@ namespace Remember
         public void Save() { Storage.Save(Data); }
         public bool Change(Action<AppData> mutation, Window owner = null)
         {
-            var before = new AppData { Version = Data.Version, StartupDelaySeconds = Data.StartupDelaySeconds, Sound = Data.Sound, Reminders = Data.Reminders.Select(r => r.Copy()).ToList() };
+            var before = new AppData { Version = Data.Version, StartupDelaySeconds = Data.StartupDelaySeconds, Sound = Data.Sound, Language = Data.Language, Theme = Data.Theme, Reminders = Data.Reminders.Select(r => r.Copy()).ToList() };
             try { mutation(Data); Save(); }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException)
-            { Data = before; Ui.Error(owner ?? Main, "Изменения не сохранены.\n" + ex.Message); return false; }
+            { Data = before; Ui.Error(owner ?? Main, L.F("Изменения не сохранены.\n{0}", ex.Message)); return false; }
+            Revision++;
             if (Changed != null) Changed();
             return true;
         }
@@ -150,7 +177,7 @@ namespace Remember
         }
         public void Delete(Reminder r)
         {
-            new MessageDialog(Main, "Удалить напоминание?", "«" + r.Title + "» будет удалено вместе с правилом повторения.", () =>
+            new MessageDialog(Main, "Удалить напоминание?", L.F("«{0}» будет удалено вместе с правилом повторения.", r.Title), () =>
             { if (Change(data => data.Reminders.RemoveAll(x => x.Id == r.Id))) Evaluate(); }).ShowDialog();
         }
         public void Toggle(Reminder r)
@@ -230,14 +257,14 @@ namespace Remember
 
         public void Export(Window owner)
         {
-            var picker = new SaveFileDialog { Title = "Экспорт напоминаний", Filter = "Копия Remember (*.json)|*.json", FileName = "Remember-" + DateTime.Now.ToString("yyyy-MM-dd") + ".json" };
+            var picker = new SaveFileDialog { Title = L.T("Экспорт напоминаний"), Filter = L.T("Копия Remember (*.json)|*.json"), FileName = "Remember-" + DateTime.Now.ToString("yyyy-MM-dd") + ".json" };
             if (picker.ShowDialog(owner) != true) return;
             try { Storage.Export(Data, picker.FileName); new MessageDialog(owner, "Копия сохранена", picker.FileName).ShowDialog(); }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) { Ui.Error(owner, ex.Message); }
         }
         public void Import(Window owner)
         {
-            var picker = new OpenFileDialog { Title = "Импорт напоминаний", Filter = "Копия Remember (*.json)|*.json" };
+            var picker = new OpenFileDialog { Title = L.T("Импорт напоминаний"), Filter = L.T("Копия Remember (*.json)|*.json") };
             if (picker.ShowDialog(owner) != true) return;
             try
             {
@@ -246,9 +273,9 @@ namespace Remember
                 {
                     foreach (var r in imported.Reminders)
                         if (!data.Reminders.Any(existing => existing.Id == r.Id)) { data.Reminders.Add(r); count++; }
-                }, owner)) { Evaluate(); new MessageDialog(owner, "Импорт завершён", "Добавлено напоминаний: " + count + ". Существующие записи сохранены.").ShowDialog(); }
+                }, owner)) { Evaluate(); new MessageDialog(owner, "Импорт завершён", L.F("Добавлено напоминаний: {0}. Существующие записи сохранены.", count)).ShowDialog(); }
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is System.Runtime.Serialization.SerializationException) { Ui.Error(owner, "Не удалось прочитать копию. " + ex.Message); }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is System.Runtime.Serialization.SerializationException) { Ui.Error(owner, L.F("Не удалось прочитать копию. {0}", ex.Message)); }
         }
         public void Exit()
         {

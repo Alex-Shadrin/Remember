@@ -53,6 +53,8 @@ namespace Remember
         [DataMember] public List<Reminder> Reminders = new List<Reminder>();
         [DataMember] public int StartupDelaySeconds = 120;
         [DataMember] public bool Sound = true;
+        [DataMember(EmitDefaultValue = false)] public string Language = "ru";
+        [DataMember(EmitDefaultValue = false)] public string Theme = "graphite";
     }
 
     public sealed class Occurrence

@@ -18,8 +18,12 @@ if ($Test) {
 if ($UiTest) {
     & $msbuildPath (Join-Path $projectRoot 'tests/Remember.WpfTests.csproj') /t:Build /p:Configuration=Release /nologo /verbosity:minimal
     if ($LASTEXITCODE -ne 0) { throw 'WPF integration test build failed.' }
-    & (Join-Path $projectRoot 'tests/bin/Wpf/Remember.WpfTests.exe')
+    & (Join-Path $projectRoot 'tests/bin/Wpf/Remember.WpfTests.exe') --offscreen
     if ($LASTEXITCODE -ne 0) { throw 'WPF integration tests failed.' }
+    & $msbuildPath (Join-Path $projectRoot 'tests/Remember.WindowTests.csproj') /t:Build /p:Configuration=Release /nologo /verbosity:minimal
+    if ($LASTEXITCODE -ne 0) { throw 'Window interaction test build failed.' }
+    & (Join-Path $projectRoot 'tests/bin/Window/Remember.WindowTests.exe') --offscreen
+    if ($LASTEXITCODE -ne 0) { throw 'Window interaction tests failed.' }
 }
 if ($Package) {
     $releaseDir = Join-Path $projectRoot 'dist/Remember'

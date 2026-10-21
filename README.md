@@ -19,14 +19,18 @@ Windows 10 (1803+) или Windows 11; используется встроенн�
 - Календарь с понедельника, отметками событий и быстрым переходом к месяцу и году по нажатию на заголовок месяца.
 - Разовые, ежемесячные, ежегодные и еженедельные события; предупреждение за 0–365 дней в выбранное местное время.
 - Отдельное окно поверх остальных: **Помню**, **Через 10 минут**, **Напомнить завтра**. Закрытие сигнала откладывает его на 10 минут.
-- Автозапуск в трее; по умолчанию первые сигналы — через две минуты после входа в Windows. Пауза, редактирование, удаление и просмотр завершённых записей.
+- Автозапуск в трее; по умолчанию первые сигналы — через две минуты после входа в Windows. Русский и английский интерфейсы, три цветовые темы.
 - Локальные данные, автоматическая резервная копия, экспорт и импорт JSON без замены существующих записей с тем же ID.
 
 ![Окно напоминания](docs/images/notification.png)
 
+В **Настройках** можно выбрать язык и тему: **Графит**, **Шалфей** или **Светлая**. Они применяются после сохранения, без перезапуска. Названия и заметки ваших событий сохраняются в исходном виде. Примеры: [светлая тема и английский интерфейс](docs/images/calendar-light-en.png), [Шалфей](docs/images/calendar-sage.png), [настройки](docs/images/settings.png).
+
 ## Как работает фон
 
 Закрытие календаря освобождает окно, а значок остаётся в трее. Нажмите на значок, чтобы открыть календарь снова. Полный выход — **Выйти из Remember** в меню значка. `Ctrl+N` создаёт событие, `Esc` закрывает календарь в трей.
+
+Для перемещения можно потянуть любую свободную область окна, включая фон и обычные подписи. Перемещение и изменение размера выполняет Windows. Кнопки, дни календаря, карточки событий, поля и полосы прокрутки остаются интерактивными. При перемещении календарь не перестраивается; повторное обновление без изменений использует уже созданные элементы.
 
 Один таймер ждёт ближайшего сигнала или смены дня. Нет сети, опроса сервера, браузерного движка, фоновых анимаций или телеметрии. Основное окно создаётся только при открытии календаря. Во время сна или выключения компьютера Remember не работает; после возобновления он проверяет пропущенные сигналы. Он не будит компьютер.
 
@@ -48,7 +52,7 @@ Windows 10 (1803+) или Windows 11; используется встроенн�
 # Сборка, проверки дат / хранилища и ZIP релиза
 .\scripts\build.ps1 -Test -Package
 
-# Интеграционные проверки настоящих окон (в интерактивной сессии Windows)
+# Интеграционные проверки настоящих окон вне экрана, без перехвата фокуса
 .\scripts\build.ps1 -UiTest
 
 # Изолированный ручной запуск: не использует ваши события и не меняет автозапуск
@@ -60,10 +64,10 @@ Windows 10 (1803+) или Windows 11; используется встроенн�
 
 Результат сборки — `bin\Release\Remember.exe`, архив — `dist\Remember-1.0.0-windows.zip`. `scripts/create-icon.ps1` пересоздаёт оригинальный значок из геометрических фигур; готовый значок уже включён в репозиторий.
 
-`src/Core.cs` содержит правила дат, `Storage.cs` — сохранение, `Program.cs` — жизненный цикл, трей и планировщик. `MainWindow.cs`, `Dialogs.cs`, `Ui.cs`, `Theme.xaml` — интерфейс. Проверки покрывают конец месяца, високосные годы, переход года, пропуски, паузу, подтверждение, откладывание, повреждение файла и реальные сценарии редактора / окна сигнала.
+`src/Core.cs` содержит правила дат, `Storage.cs` — сохранение, `Program.cs` — жизненный цикл, трей и планировщик. `MainWindow.cs`, `Dialogs.cs`, `Ui.cs`, `Theme.xaml` — интерфейс, `Preferences.cs` — переводы и палитры. Проверки покрывают конец месяца, високосные годы, переход года, пропуски, паузу, подтверждение, откладывание, повреждение файла, реальные сценарии окон, переключение языков и тем, совместимость исходных данных 1.0 и системную проверку областей перетаскивания.
 
 Палитра и типографика вдохновлены [Whisperino](https://github.com/Alex-Shadrin/whisperino); реализация интерфейса, значок и код Remember самостоятельные. Технология: C# / WPF / .NET Framework. [Лицензия MIT](LICENSE).
 
 ## English
 
-Remember is a tiny offline Windows tray calendar with Russian UI, recurring reminders, configurable advance warnings, a persistent popup, snooze, startup delay, and local JSON backups. Built with C# and the Windows .NET Framework: no Electron, Python, NuGet dependencies, accounts, or network access. Download the ZIP from [Releases](https://github.com/Alex-Shadrin/Remember/releases/latest), extract, and run `Remember.exe`. Optional `install.ps1` creates shortcuts and enables startup without administrator rights. MIT licensed.
+Remember is a tiny offline Windows tray calendar with Russian and English interfaces, three colour themes, recurring reminders, configurable advance warnings, a persistent popup, snooze, startup delay, and local JSON backups. Drag any non-interactive window area to move it using native Windows behaviour. Built with C# and the Windows .NET Framework: no Electron, Python, NuGet dependencies, accounts, or network access. Download the ZIP from [Releases](https://github.com/Alex-Shadrin/Remember/releases/latest), extract, and run `Remember.exe`. Optional `Install.cmd` creates shortcuts and enables startup without administrator rights. MIT licensed.
